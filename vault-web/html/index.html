@@ -1,0 +1,179 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vault</title>
+  <link rel="stylesheet" href="deps/bootstrap-3.3.6.min.css">
+  <link rel="stylesheet" href="vault.css">
+</head>
+
+<body>
+  <nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="#">Vault Web</a>
+      </div>
+      <div class="collapse navbar-collapse" id="navbar">
+        <ul class="nav navbar-nav">
+          <li><a href="#" data-bind="click: reloadAll">Load Secrets</a></li>
+          <li><a href="#" data-bind="click: secretForm().setupNew" data-toggle="modal" data-target="#vaultAddModal">Add New Secret</a></li>
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+        <li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">System <span class="caret"></span></a>
+          <ul class="dropdown-menu">
+            <li class="dropdown-header" data-bind="text: vaultTokenDisplayName()">-</li>
+            <li role="separator" class="divider"></li>
+            <li><a href="#" data-bind="click: apiHealth" data-toggle="modal" data-target="#vaultHealthModal">Health Check</a></li>
+            <li><a href="#" data-bind="click: apiToken" data-toggle="modal" data-target="#vaultTokenModal">Token Information</a></li>
+            <li role="separator" class="divider"></li>
+            <li><a href="#" data-bind="click: logout">Logout</a></li>
+          </ul>
+        </li>
+      </ul>
+      </div>
+    </div>
+  </nav>
+  <div class="container">
+    <form class="form-horizontal" data-bind="submit: reloadAll, visible: !vaultTokenDisplayName()">
+      <div class="form-group">
+        <label for="endpoint" class="col-sm-2 control-label">Endpoint</label>
+        <div class="col-sm-10">
+          <input data-bind="value: endpoint" type="text" class="form-control" id="endpoint" placeholder="https://vault.example.com">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="token" class="col-sm-2 control-label">Token</label>
+        <div class="col-sm-10">
+          <input data-bind="value: token" type="password" class="form-control" id="token">
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10">
+          <input value="Login" type="submit" class="btn btn-primary">
+        </div>
+      </div>
+    </form>
+    <table data-bind="if: secrets().length" class="table table-hover">
+      <thead>
+        <tr>
+          <th>Path</th><th>Secrets</th><th>View</th>
+        </tr>
+      </thead>
+      <tbody data-bind="foreach: secrets().sort(sortByPath)">
+        <tr>
+          <th data-bind="text: path"></th>
+          <th data-bind="text: secrets().length"></th>
+          <th><a data-bind="click: edit" class="pointer">View</a></th>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Modals -->
+  <div class="modal fade" id="vaultHealthModal" tabindex="-1" role="dialog" aria-labelledby="vaultHealthLabel">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title" id="vaultHealthLabel">Vault System Health</h4>
+        </div>
+        <div class="modal-body">
+          <label for="vaultHealthEndpointLabel">Endpoint:</label>
+          <span data-bind="text: endpoint()" id="vaultHealthEndpointLabel">-</span>
+          <pre data-bind="text: vaultHealthResponse()"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="vaultTokenModal" tabindex="-1" role="dialog" aria-labelledby="vaultTokenLabel">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title" id="vaultTokenLabel">Vault Token Information</h4>
+        </div>
+        <div class="modal-body">
+          <pre data-bind="text: vaultTokenResponse()"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div data-bind="with: secretForm" class="modal fade" id="vaultAddModal" tabindex="-1" role="dialog" aria-labelledby="vaultAddLabel">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <form data-bind="submit: submit">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 data-bind="text: title" class="modal-title" id="vaultAddLabel"></h4>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="secretFormPath" class="control-label">Path:</label>
+              <input data-bind="value: secretCollection().path, attr: {readonly: editMode}" id="secretFormPath" type="text" class="form-control">
+            </div>
+            <div data-bind="foreach: secretCollection().secrets">
+              <div class="form-group">
+                <div class="row">
+                  <div class="col-md-1">
+                    <button data-bind="click: $parent.secretCollection().removeSecret" type="button" class="btn close btn-remove-secret" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                  </div>
+                  <div class="col-md-5">
+                    <input data-bind="value: name" type="text" class="form-control" placeholder="key">
+                  </div>
+                  <div class="col-md-6">
+                    <div class="input-group">
+                      <input data-bind="attr: {'aria-describedby': id, type: fieldType, id: id}, value: secret" class="form-control" placeholder="value">
+                      <span class="input-group-btn">
+                        <button data-bind="text: buttonText(), click: toggleVisible(this)" class="btn btn-secondar btn-hide-show" type="button"></button>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <input data-bind="click: addEmptySecret" value="+" type="button" class="btn btn-secondary btn-add">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+            <!-- ko if: editMode -->
+            <input data-bind="click: deleteSecret" type="button" value="Delete" class="btn btn-danger">
+            <!-- /ko -->
+            <input value="Save" type="submit" class="btn btn-primary">
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="errorModal" tabindex="-1" role="dialog" aria-labelledby="errorModalLabel">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title" id="errorModalLabel">Error</h4>
+        </div>
+        <div class="modal-body">
+          <pre id="errorModalBody"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="deps/jquery-1.11.3.min.js"></script>
+  <script src="deps/bootstrap-3.3.6.min.js"></script>
+  <script src="deps/knockout-3.4.0.min.js"></script>
+  <script src="vault.js"></script>
+</body>
+</html>

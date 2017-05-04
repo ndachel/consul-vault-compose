@@ -1,0 +1,23 @@
+body {
+  padding-top: 80px;
+}
+
+.navbar-inverse label {
+  color: white;
+}
+
+.btn-hide-show {
+  width: 70px;
+}
+
+.btn-add {
+  width: 100%;
+}
+
+.btn-remove-secret {
+  line-height: 1.5em;
+}
+
+.pointer {
+  cursor: pointer;
+}

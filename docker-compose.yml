@@ -1,0 +1,25 @@
+version: '2'
+services:
+  consul:
+    image: consul:latest
+    network_mode: "host"
+    volumes:
+      - /home/dachel/vault/consul:/consul/data
+    command: consul agent -server -ui -bootstrap-expect=1 -data-dir=/consul/data -advertise 172.16.1.96 -client 172.16.1.96
+  vault: 
+    image: vault:latest
+    network_mode: "host"
+    volumes:
+      -  /home/dachel/vault:/tmp/vault
+    depends_on:
+      - consul
+    command: server -config /tmp/vault/config.hcl
+    cap_add:
+      - IPC_LOCK    
+  vault-web:
+    build:
+      context: ./vault-web
+    ports:
+     - 80:80
+    depends_on:
+      - vault
